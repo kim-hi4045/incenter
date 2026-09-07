@@ -1,0 +1,1521 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>삼각형의 외심·내심 탐구 플랫폼</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- FontAwesome Icons -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  :root{
+    --board-bg: #1B3B2B;       
+    --board-frame: #4A3319;    
+    --paper: #FAF8F5;          
+    --grid-line: #D0DCD4;     
+    --ink: #223328;            
+    --ink-soft: #5A7061;
+    --ink-faint: #8FA395;
+    --pen-red: #E05359;        
+    --pen-blue: #4A90D9;       
+    --gold: #F2C94C;           
+    --gold-soft: #FEF6DC;
+    --border: #D1DEC7;
+    --panel-bg: #FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background: var(--board-bg);
+    background-image: radial-gradient(circle, rgba(255,255,255,0.03) 0%, rgba(0,0,0,0.15) 100%);
+    color: var(--paper);
+    font-family:'Noto Sans KR',sans-serif;
+    min-height: 100vh;
+  }
+  
+  .topnav{
+    width: 100%; max-width: 1120px; margin: 20px auto 10px; padding: 0 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .grade-badge{ background: #E05359; color: #fff; font-weight: 900; font-size: 11px; padding: 4px 8px; border-radius: 8px; }
+  .step-tabs{ display: flex; gap: 8px; flex-wrap: wrap; }
+  .step-tab{
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #A3B8AC; padding: 6px 12px; border-radius: 10px; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: all 0.2s;
+  }
+  .step-tab:hover{ background: rgba(255, 255, 255, 0.2); color: #fff; }
+  .step-tab.active{ background: #E05359; color: #fff; border-color: #E05359; font-weight: 700; }
+  .step-tab.locked{ opacity: 0.55; }
+
+  .page{ max-width:1120px; margin:0 auto; padding:16px 24px 64px; }
+  header.top{ margin-bottom:24px; border-bottom: 2px dashed rgba(255, 255, 255, 0.15); padding-bottom: 16px; display:flex; justify-content:space-between; align-items:center; gap:20px; flex-wrap:wrap; }
+  header.top .top-text{ flex:1 1 320px; min-width:0; }
+  header.top h1{ font-family:'Gowun Dodum',sans-serif; font-weight:700; font-size:clamp(24px,4vw,30px); margin:0 0 6px; color: #FFF; }
+  header.top p{ margin:0; color:#C2D4C8; font-size:14.5px; line-height:1.6; max-width:65ch; }
+
+  /* 점수 배지 (왕짱강한수학력수치) - 반짝이는 게임풍 테두리 */
+  .score-badge{
+    flex:0 0 auto; display:flex; align-items:center; gap:10px;
+    padding:10px 18px; border-radius:16px; position:relative; isolation:isolate;
+  }
+  .score-badge::before{
+    content:''; position:absolute; inset:-3px; border-radius:19px; z-index:-2;
+    background: linear-gradient(120deg, #F2C94C, #FFF3C4, #FFD700, #C9971C, #F2C94C);
+    background-size: 260% 260%; animation: score-shine 3.2s linear infinite;
+  }
+  .score-badge::after{
+    content:''; position:absolute; inset:0; border-radius:16px; z-index:-1;
+    background: linear-gradient(160deg, #1b3b2b, #0f2318);
+  }
+  @keyframes score-shine{ 0%{background-position:0% 50%;} 100%{background-position:260% 50%;} }
+  .score-badge .score-icon{ font-size:22px; filter: drop-shadow(0 0 6px rgba(242,201,76,0.7)); }
+  .score-badge .score-label{ font-size:10.5px; font-weight:800; color:var(--gold); letter-spacing:0.5px; white-space:nowrap; }
+  .score-badge .score-value{ font-family:'Gowun Dodum',sans-serif; font-size:26px; font-weight:900; color:#FFF; line-height:1.15; text-shadow:0 0 10px rgba(242,201,76,0.6); }
+  .score-badge .score-value .unit{ font-size:13px; color:var(--gold); margin-left:2px; font-weight:700; }
+  @keyframes score-pulse{ 0%{transform:scale(1);} 35%{transform:scale(1.18);} 100%{transform:scale(1);} }
+  .score-badge.pulse{ animation: score-pulse 0.45s ease; }
+  @media (max-width:600px){ header.top{ flex-direction:column; align-items:flex-start; } .score-badge{ align-self:stretch; justify-content:center; } }
+
+  .tab-content{ display: none; }
+  .tab-content.active{ display: block; }
+
+  .workspace{ display:flex; gap:22px; align-items:flex-start; }
+  @media (max-width:880px){ .workspace{flex-direction:column;} }
+
+  .canvas-panel{
+    flex:1 1 620px; min-width:0; background:var(--paper); border:4px solid var(--board-frame);
+    border-radius:8px; box-shadow:0 12px 35px rgba(0,0,0,0.3); padding:18px 18px 14px;
+  }
+  .canvas-instruction{ font-size:15.5px; font-weight:600; color:var(--ink); min-height:24px; margin-bottom:12px; line-height:1.5; }
+  svg{ width:100%; height:auto; display:block; touch-action:manipulation; cursor:crosshair; background: #FFF; border-radius: 4px; }
+  .toast{ font-size:13px; color:var(--pen-red); margin-top:8px; min-height:18px; font-weight: 500; }
+  .canvas-footer{ display:flex; justify-content:flex-end; margin-top:10px; }
+  button.reset{
+    background:#fff; border:1px solid var(--border); color:var(--ink-soft); font-family:'Noto Sans KR',sans-serif;
+    font-size:13px; padding:7px 14px; border-radius:6px; cursor:pointer; font-weight: 500;
+  }
+  button.reset:hover{ background:#F4F8F5; }
+
+  .side-panel{
+    flex:0 0 320px; background:#234937; border: 2px solid #32624B; border-radius: 12px; padding:20px 22px; box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+  }
+  .side-panel h2{ font-family:'Gowun Dodum',sans-serif; font-weight:400; font-size:18px; margin:0 0 4px; color: #FFF; }
+  .side-panel .step-tag{ font-size:11.5px; color:var(--gold); margin-bottom:14px; font-weight: 700; }
+  ol.checklist{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; }
+  ol.checklist li{ display:flex; gap:10px; align-items:flex-start; font-size:13px; line-height:1.5; color:#7CA38E; }
+  ol.checklist li .num{
+    flex:0 0 22px; height:22px; width:22px; border-radius:50%; border:1.5px solid #5A826B;
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; color:#7CA38E; background: #1B3B2B;
+  }
+  ol.checklist li.active{ color:#FFFFFF; font-weight: 500; }
+  ol.checklist li.active .num{ border-color:var(--gold); color:var(--board-bg); background:var(--gold); }
+  ol.checklist li.done{ color:#A3C2B1; }
+  ol.checklist li.done .num{ border-color:#5A826B; background:#32624B; color:#fff; }
+
+  /* Step 2 View */
+  .step2-view{ background: #234937; border: 2px solid #32624B; padding: 32px; border-radius: 16px; max-width: 800px; margin: 0 auto; box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+  .step2-view h2{ font-family:'Gowun Dodum',sans-serif; font-weight:700; font-size:24px; margin:0 0 8px; color: #FFF; }
+  .concept-cards{ display:flex; flex-direction:column; gap:16px; }
+  .concept-card{ background:#1B3B2B; border:1px solid #32624B; border-radius:10px; padding:20px 22px; }
+  .concept-card .statement{ font-size:15px; font-weight:600; color:#FFF; margin:0 0 8px; line-height:1.7; display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+  .blank-input{
+    display: inline-block; background: #153023; border: 2px solid #32624B; border-bottom: 2px solid var(--gold);
+    color: var(--gold); font-family: 'Gowun Dodum', sans-serif; font-size: 15px; padding: 2px 10px; border-radius: 6px; width: 120px; text-align: center; outline: none;
+  }
+  .check-answer-btn{ background: var(--gold); color: var(--board-bg); border: none; font-weight: 700; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 14px; }
+  .concept-toggle-row{ display: flex; gap: 10px; margin-bottom: 20px; }
+  .toggle-btn{
+    flex: 1; background: #153023; border: 1.5px solid #32624B; color: #A3B8AC;
+    font-family: 'Gowun Dodum', sans-serif; font-size: 15px; font-weight: 700; padding: 12px; border-radius: 10px; cursor: pointer;
+  }
+  .toggle-btn.active{ background: var(--gold); border-color: var(--gold); color: var(--board-bg); }
+
+  /* Step 3 Styles */
+  .badge-row{ display:flex; gap:8px; margin-bottom:10px; flex-wrap:wrap; }
+  .status-badge{ font-size:12.5px; font-weight:600; color:var(--ink-soft); background:#EEF3EA; border:1px solid var(--border); border-radius:20px; padding:5px 12px; }
+  .status-badge.filled{ color:var(--ink); background:var(--gold-soft); border-color:#EFD9A6; }
+  .triangle-type-row{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+  .type-btn{
+    flex:1 1 auto; background:#1B3B2B; border:1.5px solid #32624B; color:#A3B8AC;
+    font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:600; padding:9px 8px; border-radius:8px; cursor:pointer;
+  }
+  .type-btn.active{ background:var(--gold); border-color:var(--gold); color:var(--board-bg); }
+
+  /* Wrap-up / Quiz Styles */
+  .wrapup-container{ background: #152E22; border: 2px solid #32624B; border-radius: 16px; padding: 28px; max-width: 950px; margin: 0 auto; box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+  .wrapup-table{ width: 100%; border-collapse: collapse; margin-bottom: 30px; background: #1B3B2B; border-radius: 10px; overflow: hidden; }
+  .wrapup-table th, .wrapup-table td{ border: 1px solid #32624B; padding: 12px 16px; text-align: center; font-size: 14px; }
+  .wrapup-table th{ background: #234937; color: var(--gold); font-family: 'Gowun Dodum', sans-serif; font-size: 15px; }
+  .wrapup-table td{ color: #FAF8F5; }
+  
+  .quiz-section{ background: #1B3B2B; border: 2px solid #32624B; border-radius: 14px; padding: 24px; }
+  .quiz-boards{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 16px; }
+  @media(max-width:768px){ .quiz-boards{ grid-template-columns: 1fr; } }
+  .drop-board{ background: #152E22; border: 2px dashed #4A7059; border-radius: 12px; padding: 16px; min-height: 260px; display: flex; flex-direction: column; gap: 10px; }
+  .drop-board.circum-board{ border-color: #4A90D9; }
+  .drop-board.incenter-board{ border-color: #E05359; }
+  .board-title{ font-family: 'Gowun Dodum', sans-serif; font-size: 16px; font-weight: 700; text-align: center; padding: 8px; border-radius: 8px; margin-bottom: 4px; }
+  .circum-board .board-title{ background: rgba(74, 144, 217, 0.2); color: #4A90D9; }
+  .incenter-board .board-title{ background: rgba(224, 83, 89, 0.2); color: #E05359; }
+  .quiz-card{ background: #FFF; color: #223328; font-weight: 600; font-size: 13.5px; padding: 12px 16px; border-radius: 8px; cursor: grab; box-shadow: 0 4px 10px rgba(0,0,0,0.15); transition: transform 0.15s, background 0.2s; display: flex; justify-content: space-between; align-items: center; }
+  .quiz-card:active{ cursor: grabbing; }
+  .quiz-card.dragging { opacity: 0.5; transform: scale(0.95); }
+  .card-pool{ display: flex; flex-direction: column; gap: 10px; min-height: 50px; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    50% { transform: translateX(8px); }
+    75% { transform: translateX(-8px); }
+  }
+  .shake { animation: shake 0.4s ease-in-out; background-color: #ffe6e6 !important; color: #d63031 !important; }
+
+  /* Step 4 Styles */
+  .collab-board{ background: #234937; border: 2px solid #32624B; border-radius: 16px; padding: 24px; max-width: 900px; margin: 0 auto; box-shadow: 0 12px 35px rgba(0,0,0,0.3); }
+  .collab-form{ background: #1B3B2B; border: 1px solid #32624B; padding: 20px; border-radius: 12px; margin-bottom: 24px; display: flex; flex-direction: column; gap: 16px; }
+  .form-row{ display: flex; flex-direction: column; gap: 6px; }
+  .form-row label{ font-size: 13.5px; font-weight: 600; color: var(--gold); }
+  .collab-input, .collab-textarea{ background: #153023; border: 1px solid #32624B; color: #FFF; padding: 10px 14px; border-radius: 8px; font-family: 'Noto Sans KR', sans-serif; font-size: 14px; outline: none; }
+  .grid-3col{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .sub-box{ background: #153023; border: 1px solid #32624B; padding: 12px; border-radius: 8px; display: flex; flex-direction: column; gap: 8px; }
+  .collab-submit{ background: var(--gold); color: var(--board-bg); border: none; font-weight: 700; padding: 12px; border-radius: 8px; cursor: pointer; font-size: 15px; margin-top: 4px; }
+  .posts-grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .post-card{ background: #1B3B2B; border: 1px solid #32624B; border-top: 4px solid var(--gold); border-radius: 10px; padding: 16px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; }
+  .post-card .card-header{ font-weight: 700; font-size: 14px; color: var(--gold); border-bottom: 1px dashed #32624B; padding-bottom: 6px; }
+  .post-card .q-block{ font-size: 12px; color: #C2D4C8; line-height: 1.4; }
+  .post-card .q-block span{ color: #FFF; font-weight: 500; display: block; margin-top: 2px; }
+  .live-status-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .group-badge { background: #153023; border: 1px solid var(--gold); color: var(--gold); font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; }
+
+  /* Modal */
+  .modal-overlay{ position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: none; align-items: center; justify-content: center; z-index: 1000; }
+  .modal-box{ background: #234937; border: 2px solid var(--gold); border-radius: 14px; padding: 28px; width: 340px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.4); }
+  .modal-box h3{ font-family:'Gowun Dodum',sans-serif; color:#FFF; margin:0 0 10px; font-size:18px; }
+  .modal-box p{ color:#A3C2B1; font-size:13.5px; margin:0 0 16px; }
+  .modal-input{ width: 100%; background: #153023; border: 2px solid #32624B; color: var(--gold); padding: 10px 14px; border-radius: 8px; font-size: 16px; text-align: center; outline: none; margin-bottom: 14px; }
+  .modal-btn-group{ display: flex; gap: 10px; }
+  .modal-btn{ flex: 1; padding: 9px; border-radius: 8px; font-weight: 700; font-size: 13.5px; cursor: pointer; border: none; }
+  .modal-btn.confirm{ background: var(--gold); color: var(--board-bg); }
+  .modal-btn.cancel{ background: #1B3B2B; color: #A3C2B1; border: 1px solid #32624B; }
+
+  /* 학습목표 공통 바 */
+  .target-banner{
+    width: 100%; max-width: 1120px; margin: 0 auto 12px; padding: 10px 18px;
+    background: #234937; border: 1px solid #32624B; border-left: 4px solid var(--gold);
+    border-radius: 10px; color: #E0EFE6; font-size: 14px; font-weight: 500;
+    display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+  }
+  .target-banner b{ color: var(--gold); font-weight: 700; }
+</style>
+</head>
+<body>
+
+  <div class="topnav">
+    <div style="display:flex; align-items:center; gap:10px;">
+      <span class="grade-badge">중2</span>
+      <span style="font-size:14px; font-weight:700; color:#FFF;">명품신정중</span>
+    </div>
+    <div class="step-tabs">
+      <div class="step-tab active" id="tab-step1-circum" onclick="switchTab('1-circum')">Step 1-1 외심 탐구</div>
+      <div class="step-tab" id="tab-step1" onclick="switchTab(1)">Step 1-2 내심 탐구</div>
+      <div class="step-tab locked" id="tab-step2" onclick="switchTab(2)">Step 2 개념확인 🔒</div>
+      <div class="step-tab" id="tab-step3" onclick="switchTab(3)">Step 3 모양별 탐구</div>
+      <div class="step-tab" id="tab-step4" onclick="switchTab(4)">Step 4 지식공유보드 ✨</div>
+      <div class="step-tab locked" id="tab-wrapup" onclick="switchTab('wrapup')">🎯 마무리 & 분류퀴즈 🔒</div>
+    </div>
+  </div>
+
+  <div style="max-width:1120px; margin:0 auto; padding:0 24px;">
+    <div class="target-banner">
+      <span>🎯</span>
+      <span><b>학습목표 :</b> 외심과 내심의 성질을 이해하고 관련 문제를 해결할 수 있다.</span>
+    </div>
+  </div>
+
+<div class="page">
+
+  <!-- TAB 1-1: 외심 탐구 -->
+  <div class="tab-content active" id="content-step1-circum">
+    <header class="top">
+      <div class="top-text">
+        <h1>삼각형의 외심 탐구 실험</h1>
+        <p>모눈종이 위에 삼각형을 만들고, 세 변의 수직이등분선을 그려 외심을 찾아보세요.</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+    <div class="workspace">
+      <div class="canvas-panel">
+        <div class="canvas-instruction" id="instructionCircum">모눈종이 위 원하는 곳을 클릭해 삼각형의 첫 번째 꼭짓점 <b>A</b>를 찍어보세요.</div>
+        <svg id="boardCircum" viewBox="0 0 640 520" xmlns="http://www.w3.org/2000/svg">
+          <g id="gridLayerCircum"></g>
+          <g id="triangleLayerCircum"></g>
+          <g id="perpLayerCircum"></g>
+          <g id="circumDistanceLayer"></g>
+          <g id="circumcenterLayer"></g>
+        </svg>
+        <div class="toast" id="toastCircum"></div>
+        <div class="canvas-footer"><button class="reset" id="resetBtnCircum">다시 만들기</button></div>
+      </div>
+      <div class="side-panel">
+        <div class="step-tag">STEP 1-1</div>
+        <h2>외심 탐구 실험</h2>
+        <ol class="checklist" id="checklistCircum">
+          <li data-step="1"><span class="num">1</span><span>삼각형 만들기 — 세 점을 찍어 삼각형을 만들어요.</span></li>
+          <li data-step="2"><span class="num">2</span><span>수직이등분선 그리기 — 세 변의 수직이등분선을 그려요.</span></li>
+          <li data-step="3"><span class="num">3</span><span>외심 찾기 — 세 수직이등분선의 교점(O)을 클릭해요.</span></li>
+          <li data-step="4"><span class="num">4</span><span>거리 측정하기 — 외심에서 세 꼭짓점까지의 거리를 재요.</span></li>
+          <li data-step="5"><span class="num">5</span><span>개념 정리 — 빈칸을 채우면 20점 획득!</span></li>
+        </ol>
+        <div class="concept-card" id="circumConceptBox" style="margin-top:16px; display:none;">
+          <p class="statement" style="font-size:14px;">삼각형의 외심에서 <input type="text" id="circumConceptBlank" class="blank-input" style="width:100px;" placeholder="정답 입력"><span id="circumConceptFeedback" style="margin-left:6px; font-weight:900;"></span>에 이르는 거리는 모두 같다.</p>
+          <button class="check-answer-btn" id="circumConceptBtn" onclick="checkCircumConcept()" style="width:100%;">정답 확인 (성공 시 20점) 🏆</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 1-2: 내심 탐구 -->
+  <div class="tab-content" id="content-step1">
+    <header class="top">
+      <div class="top-text">
+        <h1>삼각형의 내심 탐구 실험</h1>
+        <p>모눈종이 위에 삼각형을 만들고, 세 내각의 이등분선과 내심을 찾아보세요.</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+    <div class="workspace">
+      <div class="canvas-panel">
+        <div class="canvas-instruction" id="instruction">모눈종이 위 원하는 곳을 클릭해 삼각형의 첫 번째 꼭짓점 <b>A</b>를 찍어보세요.</div>
+        <svg id="board" viewBox="0 0 640 520" xmlns="http://www.w3.org/2000/svg">
+          <g id="gridLayer"></g>
+          <g id="triangleLayer"></g>
+          <g id="bisectorLayer"></g>
+          <g id="distanceLayer"></g>
+          <g id="incenterLayer"></g>
+        </svg>
+        <div class="toast" id="toast"></div>
+        <div class="canvas-footer"><button class="reset" id="resetBtn">다시 만들기</button></div>
+      </div>
+      <div class="side-panel">
+        <div class="step-tag">STEP 1-2</div>
+        <h2>내심 탐구 실험</h2>
+        <ol class="checklist" id="checklist">
+          <li data-step="1"><span class="num">1</span><span>삼각형 만들기 — 세 점을 찍어 삼각형을 만들어요.</span></li>
+          <li data-step="2"><span class="num">2</span><span>이등분선 그리기 — 각 내각의 이등분선을 그려요.</span></li>
+          <li data-step="3"><span class="num">3</span><span>내심 찾기 — 세 이등분선의 교점(I)을 클릭해요.</span></li>
+          <li data-step="4"><span class="num">4</span><span>거리 측정하기 — 내심에서 세 변까지의 수직 거리를 재요.</span></li>
+          <li data-step="5"><span class="num">5</span><span>개념 정리 — 빈칸을 채우면 20점 획득!</span></li>
+        </ol>
+        <div class="concept-card" id="incenterConceptBox" style="margin-top:16px; display:none;">
+          <p class="statement" style="font-size:14px;">삼각형의 내심에서 <input type="text" id="incenterConceptBlank" class="blank-input" style="width:100px;" placeholder="정답 입력"><span id="incenterConceptFeedback" style="margin-left:6px; font-weight:900;"></span>에 이르는 거리는 모두 같다.</p>
+          <button class="check-answer-btn" id="incenterConceptBtn" onclick="checkIncenterConcept()" style="width:100%;">정답 확인 (성공 시 20점) 🏆</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: 개념 확인 -->
+  <div class="tab-content" id="content-step2">
+    <header class="top">
+      <div class="top-text">
+        <h1>개념 확인</h1>
+        <p>탐구 실험을 통해 발견한 삼각형의 성질을 빈칸을 채우며 정리해봅니다.</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+    <div class="step2-view">
+      <div id="step2UnlockedContent" style="display:none;">
+        <div class="step-tag">STEP 2</div>
+        <h2>핵심 개념 정리</h2>
+        <div class="concept-toggle-row">
+          <button class="toggle-btn active" id="btnCircumConcept" onclick="switchConceptTab('circum')">🔵 외심 개념 정리</button>
+          <button class="toggle-btn" id="btnIncenterConcept" onclick="switchConceptTab('incenter')">🔴 내심 개념 정리</button>
+        </div>
+
+        <div class="concept-cards" id="circumConceptCards">
+          <div class="concept-card">
+            <p class="statement">1. 삼각형의 외접원의 중심을 <input type="text" id="c_blank1" class="blank-input" placeholder="정답 입력"><span id="c_feedback1"></span> 이라 한다.</p>
+          </div>
+          <div class="concept-card">
+            <p class="statement">2. 삼각형의 외심은 세 변의 <input type="text" id="c_blank2" class="blank-input" placeholder="정답 입력"><span id="c_feedback2"></span>의 교점이다.</p>
+          </div>
+          <div class="concept-card">
+            <p class="statement">3. 외심에서 삼각형의 <input type="text" id="c_blank3" class="blank-input" placeholder="정답 입력"><span id="c_feedback3"></span>에 이르는 거리는 모두 <input type="text" id="c_blank4" class="blank-input" placeholder="정답 입력"><span id="c_feedback4"></span>.</p>
+          </div>
+          <button class="check-answer-btn" id="checkCircumBtn" onclick="checkCircumAnswers()">외심 정답 확인 (칸당 10점) ✨</button>
+        </div>
+
+        <div class="concept-cards" id="incenterConceptCards" style="display:none;">
+          <div class="concept-card">
+            <p class="statement">1. 삼각형의 내접원의 중심을 <input type="text" id="i_blank1" class="blank-input" placeholder="정답 입력"><span id="i_feedback1"></span> 이라 한다.</p>
+          </div>
+          <div class="concept-card">
+            <p class="statement">2. 삼각형의 내심은 세 각의 <input type="text" id="i_blank2" class="blank-input" placeholder="정답 입력"><span id="i_feedback2"></span>의 교점이다.</p>
+          </div>
+          <div class="concept-card">
+            <p class="statement">3. 내심에서 삼각형의 <input type="text" id="i_blank3" class="blank-input" placeholder="정답 입력"><span id="i_feedback3"></span>에 이르는 거리는 모두 <input type="text" id="i_blank4" class="blank-input" placeholder="정답 입력"><span id="i_feedback4"></span>.</p>
+          </div>
+          <button class="check-answer-btn" id="checkIncenterBtn" onclick="checkIncenterAnswers()">내심 정답 확인 (칸당 10점) ✨</button>
+        </div>
+      </div>
+      <div id="step2LockedNotice" style="text-align:center; padding:40px 20px; color:#A3C2B1;">
+        <i class="fa-solid fa-lock text-2xl text-amber-400 mb-2"></i>
+        <p>외심·내심 탐구를 완료하고 선생님이 알려주신 암호를 입력하세요.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: 모양별 탐구 -->
+  <div class="tab-content" id="content-step3">
+    <header class="top">
+      <div class="top-text">
+        <h1>모양별 외심과 내심 탐구</h1>
+        <p>삼각형 모양에 따라 외심과 내심의 위치가 어떻게 달라지는지 직접 작도하며 탐구해봅니다.</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+    <div class="workspace">
+      <div class="canvas-panel">
+        <div class="canvas-instruction" id="instruction3">① 외심과 내심 중 하나를 선택하세요.</div>
+        <svg id="board3" viewBox="0 0 640 600" xmlns="http://www.w3.org/2000/svg">
+          <g id="gridLayer3"></g>
+          <g id="triangleLayer3"></g>
+          <g id="bisectorLayer3"></g>
+          <g id="perpBisectorLayer3"></g>
+          <g id="incenterLayer3"></g>
+          <g id="circumcenterLayer3"></g>
+        </svg>
+        <div class="toast" id="toast3"></div>
+        <div class="canvas-footer"><button class="reset" id="reset3Btn">다시 하기</button></div>
+      </div>
+      <div class="side-panel">
+        <div class="step-tag">STEP 3</div>
+        <h2>모양별 탐구</h2>
+        <div class="mode-row" style="display:flex; gap:8px; margin-bottom:14px;">
+          <button class="type-btn active" data-mode="circum" onclick="selectMode3('circum')">🔵 외심 탐구</button>
+          <button class="type-btn" data-mode="incenter" onclick="selectMode3('incenter')">🔴 내심 탐구</button>
+        </div>
+        <div class="triangle-type-row">
+          <button class="type-btn active" data-type="acute" onclick="selectTriangleType3('acute')">예각</button>
+          <button class="type-btn" data-type="right" onclick="selectTriangleType3('right')">직각</button>
+          <button class="type-btn" data-type="obtuse" onclick="selectTriangleType3('obtuse')">둔각</button>
+        </div>
+        <ol class="checklist" id="checklist3">
+          <li data-step="1"><span class="num">1</span><span>외심 탐구 또는 내심 탐구를 선택해요.</span></li>
+          <li data-step="2"><span class="num">2</span><span>삼각형의 종류(예각·직각·둔각)를 선택해요.</span></li>
+          <li data-step="3"><span class="num">3</span><span id="checklistStep3Text">세 변의 수직이등분선을 그려요.</span></li>
+          <li data-step="4"><span class="num">4</span><span id="checklistStep4Text">세 수직이등분선의 교점(외심 O)을 클릭해 위치를 확인해요.</span></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: 지식 공유 보드 -->
+  <div class="tab-content" id="content-step4">
+    <header class="top">
+      <div class="top-text">
+        <h1>우리들의 지식 공유 보드</h1>
+        <p>모둠별로 오늘 배운 내용을 정리하고 실시간으로 공유하세요.</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+    <div class="collab-board">
+      <div class="collab-form">
+        <div style="color:var(--gold); font-size:16px; font-weight:700;">✍️ 모둠별 학습 정리 기록</div>
+        <div class="form-row"><label>물음 1. 몇 모둠인가요?</label><input type="text" id="q1" class="collab-input" placeholder="모둠 이름"></div>
+        <div class="form-row">
+          <label>물음 2. 삼각형별 위치</label>
+          <div class="grid-3col">
+            <div class="sub-box"><label><b>예각</b></label><input type="text" id="q2_acute_out" class="collab-input" placeholder="외심 위치"><input type="text" id="q2_acute_in" class="collab-input" placeholder="내심 위치"></div>
+            <div class="sub-box"><label><b>직각</b></label><input type="text" id="q2_right_out" class="collab-input" placeholder="외심 위치"><input type="text" id="q2_right_in" class="collab-input" placeholder="내심 위치"></div>
+            <div class="sub-box"><label><b>둔각</b></label><input type="text" id="q2_obtuse_out" class="collab-input" placeholder="외심 위치"><input type="text" id="q2_obtuse_in" class="collab-input" placeholder="내심 위치"></div>
+          </div>
+        </div>
+        <div class="form-row"><label>물음 3. 모둠원 칭찬</label><input type="text" id="q3" class="collab-input" placeholder="(모두 또는 모둠원 이름)을 칭찬합니다!!"></div>
+        <button class="collab-submit" onclick="submitPost()">보드에 기록 올리기 🚀</button>
+      </div>
+      <div style="margin-bottom:14px;"><div style="font-size:13.5px; color:#A3C2B1; margin-bottom:6px;">📡 실시간 기록 완료 모둠</div><div class="live-status-bar" id="liveStatusBar"><span style="color:#7CA38E; font-size:13px;">아직 기록이 없습니다.</span></div></div>
+      <div class="posts-grid" id="postsGrid"></div>
+      <div style="text-align:right; margin-top:10px;">
+        <button id="secretBtn" onclick="openSecretModal()" aria-label="" style="background:none; border:none; color:rgba(255,255,255,0.06); font-size:11px; cursor:pointer; padding:6px; line-height:1;">•</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB WRAP-UP: 마무리 및 분류 퀴즈 -->
+  <div class="tab-content" id="content-wrapup">
+    <header class="top" style="text-align: center;">
+      <div class="top-text">
+        <h1 style="font-size: 28px;">외심 vs 내심 마스터 분류 퀴즈</h1>
+        <p style="margin: 0 auto;">아래의 설명 카드들을 알맞은 보드(외심/내심)로 드래그하여 완벽하게 분류해 보세요!</p>
+      </div>
+      <div class="score-badge"><span class="score-icon">🏆</span><div><div class="score-label">왕짱강한수학력수치</div><div class="score-value"><span class="score-num">0</span><span class="unit">점</span></div></div></div>
+    </header>
+
+    <div class="wrapup-container">
+      <div id="wrapupUnlockedContent" style="display:none;">
+        <div class="quiz-section">
+          <h3 style="font-family:'Gowun Dodum',sans-serif; color:var(--gold); margin-top:0; margin-bottom:8px; font-size:18px; text-align:center;">🧩 개념 분류 마스터 퀴즈</h3>
+          <p style="text-align:center; color:#A3C2B1; font-size:13.5px; margin-bottom:16px;">카드를 마우스로 드래그해서 알맞은 보드에 쏙 넣어보세요! 틀리면 튕겨 나갑니다 😆</p>
+
+          <div class="quiz-boards" style="margin-top: 0; margin-bottom: 24px;">
+            <div class="drop-board circum-board" id="circumBoard">
+              <div class="board-title"><i class="fa-solid fa-circle-nodes"></i> 외심 (Circumcenter)</div>
+              <div class="board-content" id="circumContent" style="display:flex; flex-direction:column; gap:8px; min-height:180px;"></div>
+            </div>
+            <div class="drop-board incenter-board" id="incenterBoard">
+              <div class="board-title"><i class="fa-solid fa-shapes"></i> 내심 (Incenter)</div>
+              <div class="board-content" id="incenterContent" style="display:flex; flex-direction:column; gap:8px; min-height:180px;"></div>
+            </div>
+          </div>
+
+          <div class="card-pool" id="cardPool"></div>
+
+          <div style="text-align: center; margin-top: 20px;">
+            <button class="check-answer-btn" onclick="resetQuiz()">퀴즈 다시 풀기 🔄</button>
+          </div>
+        </div>
+      </div>
+      
+      <div id="wrapupLockedNotice" style="text-align:center; padding:40px 20px; color:#A3C2B1;">
+        <i class="fa-solid fa-lock text-2xl text-amber-400 mb-2"></i>
+        <p>선생님이 알려주신 암호를 입력해야 입장할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Password Modal -->
+<div class="modal-overlay" id="passwordModal">
+  <div class="modal-box">
+    <h3 id="modalTitle">🔒 잠금 해제</h3>
+    <p>선생님께 안내받은 암호를 입력하세요.</p>
+    <input type="password" id="passwordInput" class="modal-input" placeholder="암호 입력">
+    <div class="modal-btn-group">
+      <button class="modal-btn cancel" onclick="closePasswordModal()">취소</button>
+      <button class="modal-btn confirm" onclick="verifyPassword()">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- Secret Link Modal -->
+<div class="modal-overlay" id="secretModal">
+  <div class="modal-box">
+    <h3>🔒 특별 링크</h3>
+    <p>암호를 입력하세요.</p>
+    <input type="password" id="secretPasswordInput" class="modal-input" placeholder="암호 입력">
+    <div class="modal-btn-group">
+      <button class="modal-btn cancel" onclick="closeSecretModal()">취소</button>
+      <button class="modal-btn confirm" onclick="verifySecretPassword()">확인</button>
+    </div>
+    <div id="secretLinkResult" style="margin-top:14px; display:none;">
+      <a id="secretLinkAnchor" href="#" target="_blank" rel="noopener" style="color:var(--gold); font-weight:700; word-break:break-all;">🔗 링크 열기</a>
+    </div>
+  </div>
+</div>
+
+<!-- Firebase SDK Module -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+  import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+  import { getFirestore, collection, addDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+  let db = null;
+  let auth = null;
+  const localPosts = [];
+
+  async function initFirebase() {
+    try {
+      if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+        console.log("Local offline mode active.");
+        return;
+      }
+      const appId = typeof __app_id !== 'undefined' ? __app_id : 'triangle-exploration-default';
+      const firebaseConfig = JSON.parse(__firebase_config);
+      const app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+      auth = getAuth(app);
+
+      if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+        await signInWithCustomToken(auth, __initial_auth_token);
+      } else {
+        await signInAnonymously(auth);
+      }
+      setupRealtimeListener(appId);
+    } catch (e) {
+      console.warn("Firebase fallback active:", e);
+    }
+  }
+
+  function setupRealtimeListener(appId) {
+    if (!db) return;
+    const q = collection(db, 'artifacts', appId, 'public', 'data', 'knowledge_posts');
+    onSnapshot(q, (snapshot) => {
+      const posts = [];
+      snapshot.forEach(doc => posts.push({ id: doc.id, ...doc.data() }));
+      posts.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      if (window.renderPosts) window.renderPosts(posts);
+    }, (error) => {
+      console.warn("Realtime listener offline fallback:", error);
+    });
+  }
+
+  window.submitPostToCloud = async function(postData) {
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'triangle-exploration-default';
+    if (db && auth && auth.currentUser) {
+      try {
+        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'knowledge_posts'), { ...postData, timestamp: Date.now() });
+        if (window.showNotice) window.showNotice("🚀 보드에 성공적으로 공유되었습니다!");
+        return;
+      } catch (e) {
+        console.warn("Cloud save error, switching to local state:", e);
+      }
+    }
+    // Offline local fallback so post renders immediately
+    localPosts.unshift({ id: 'local_' + Date.now(), ...postData, timestamp: Date.now() });
+    if (window.renderPosts) window.renderPosts(localPosts);
+    if (window.showNotice) window.showNotice("🚀 보드에 기록이 올랐습니다!");
+  };
+
+  initFirebase();
+</script>
+
+<script>
+  let state = {
+    isStep1CircumDone: false, isStep1IncenterDone: false, isStep2Unlocked: false, isWrapupUnlocked: false, currentLockTarget: null,
+    score: 0, step2CircumChecked: false, step2IncenterChecked: false
+  };
+
+  // Toast Notice Replacement for non-blocking UI
+  function showNotice(msg){
+    const toast = document.createElement('div');
+    toast.style.cssText = 'position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#234937; color:#F2C94C; border:2px solid #F2C94C; padding:12px 24px; border-radius:12px; font-weight:700; font-size:15px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.5); text-align:center; transition:opacity 0.3s; opacity:1;';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => toast.remove(), 300);
+    }, 2200);
+  }
+  window.showNotice = showNotice;
+
+  // 왕짱강한수학력수치 - 전역 점수 시스템
+  function addScore(points){
+    if(!points) return;
+    state.score += points;
+    document.querySelectorAll('.score-num').forEach(el => el.textContent = state.score);
+    document.querySelectorAll('.score-badge').forEach(b => {
+      b.classList.remove('pulse');
+      void b.offsetWidth;
+      b.classList.add('pulse');
+    });
+  }
+
+  function switchTab(step) {
+    if (step === 2) {
+      if (!state.isStep1CircumDone || !state.isStep1IncenterDone) {
+        showNotice("Step 1-1 외심 탐구와 Step 1-2 내심 탐구를 모두 완료해주세요!");
+        return;
+      }
+      if (!state.isStep2Unlocked) {
+        state.currentLockTarget = 2;
+        document.getElementById('modalTitle').innerText = '🔒 Step 2 잠금 해제';
+        document.getElementById('passwordModal').style.display = 'flex';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+        return;
+      }
+    }
+    
+    if (step === 'wrapup') {
+      if (!state.isWrapupUnlocked) {
+        state.currentLockTarget = 'wrapup';
+        document.getElementById('modalTitle').innerText = '🔒 마무리 퀴즈 잠금 해제';
+        document.getElementById('passwordModal').style.display = 'flex';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('passwordInput').focus();
+        return;
+      }
+    }
+
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.step-tab').forEach(el => el.classList.remove('active'));
+
+    const map = { 
+      '1-circum':['content-step1-circum','tab-step1-circum'], 
+      1:['content-step1','tab-step1'], 
+      2:['content-step2','tab-step2'], 
+      3:['content-step3','tab-step3'], 
+      'wrapup':['content-wrapup','tab-wrapup'],
+      4:['content-step4','tab-step4'] 
+    };
+    document.getElementById(map[step][0]).classList.add('active');
+    document.getElementById(map[step][1]).classList.add('active');
+    if(step === 'wrapup') initQuiz();
+  }
+
+  function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+  function openSecretModal(){
+    document.getElementById('secretPasswordInput').value = '';
+    document.getElementById('secretLinkResult').style.display = 'none';
+    document.getElementById('secretModal').style.display = 'flex';
+    document.getElementById('secretPasswordInput').focus();
+  }
+  function closeSecretModal(){ document.getElementById('secretModal').style.display = 'none'; }
+  function verifySecretPassword(){
+    const pw = document.getElementById('secretPasswordInput').value.trim();
+    if(pw === '30'){
+      document.getElementById('secretLinkAnchor').href = 'https://quiz.zep.us/play/M0BN15';
+      document.getElementById('secretLinkResult').style.display = 'block';
+    } else {
+      showNotice('암호가 틀렸습니다.');
+    }
+  }
+  
+  function verifyPassword() {
+    const pw = document.getElementById('passwordInput').value.trim();
+    if (state.currentLockTarget === 2) {
+      if (pw === '20') {
+        state.isStep2Unlocked = true;
+        closePasswordModal();
+        document.getElementById('tab-step2').classList.remove('locked');
+        document.getElementById('tab-step2').innerHTML = 'Step 2 개념확인 ✨';
+        document.getElementById('step2UnlockedContent').style.display = 'block';
+        document.getElementById('step2LockedNotice').style.display = 'none';
+        switchTab(2);
+      } else { showNotice("암호가 틀렸습니다."); }
+    } else if (state.currentLockTarget === 'wrapup') {
+      if (pw === '30') {
+        state.isWrapupUnlocked = true;
+        closePasswordModal();
+        document.getElementById('tab-wrapup').classList.remove('locked');
+        document.getElementById('tab-wrapup').innerHTML = '🎯 마무리 & 분류퀴즈 ✨';
+        document.getElementById('wrapupUnlockedContent').style.display = 'block';
+        document.getElementById('wrapupLockedNotice').style.display = 'none';
+        switchTab('wrapup');
+      } else { showNotice("암호가 틀렸습니다."); }
+    }
+  }
+
+  function switchConceptTab(type) {
+    document.getElementById('btnCircumConcept').classList.toggle('active', type==='circum');
+    document.getElementById('btnIncenterConcept').classList.toggle('active', type==='incenter');
+    document.getElementById('circumConceptCards').style.display = type==='circum' ? 'flex' : 'none';
+    document.getElementById('incenterConceptCards').style.display = type==='incenter' ? 'flex' : 'none';
+  }
+
+  function checkCircumAnswers() {
+    if(state.step2CircumChecked) return;
+    state.step2CircumChecked = true;
+
+    const items = [
+      { id:'c_blank1', fb:'c_feedback1', ok: v => v==='외심' },
+      { id:'c_blank2', fb:'c_feedback2', ok: v => v==='수직이등분선' },
+      { id:'c_blank3', fb:'c_feedback3', ok: v => v==='세 꼭짓점' || v==='세꼭짓점' },
+      { id:'c_blank4', fb:'c_feedback4', ok: v => v==='같다' || v==='모두 같다' }
+    ];
+    let earned = 0, allCorrect = true;
+    items.forEach(item => {
+      const input = document.getElementById(item.id);
+      const val = input.value.trim();
+      const correct = item.ok(val);
+      const fb = document.getElementById(item.fb);
+      fb.textContent = correct ? ' O' : ' X';
+      fb.style.color = correct ? '#27ae60' : '#e74c3c';
+      fb.style.fontWeight = '900';
+      input.disabled = true;
+      if(correct) earned += 10; else allCorrect = false;
+    });
+    addScore(earned);
+
+    const btn = document.getElementById('checkCircumBtn');
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'default';
+    showNotice(allCorrect ? `🎉 외심 개념 정답입니다! (+${earned}점)` : `일부 빈칸이 틀렸어요. (+${earned}점 획득)`);
+  }
+
+  function checkIncenterAnswers() {
+    if(state.step2IncenterChecked) return;
+    state.step2IncenterChecked = true;
+
+    const items = [
+      { id:'i_blank1', fb:'i_feedback1', ok: v => v==='내심' },
+      { id:'i_blank2', fb:'i_feedback2', ok: v => v==='이등분선' },
+      { id:'i_blank3', fb:'i_feedback3', ok: v => v==='세 변' || v==='세변' },
+      { id:'i_blank4', fb:'i_feedback4', ok: v => v==='같다' || v==='모두 같다' }
+    ];
+    let earned = 0, allCorrect = true;
+    items.forEach(item => {
+      const input = document.getElementById(item.id);
+      const val = input.value.trim();
+      const correct = item.ok(val);
+      const fb = document.getElementById(item.fb);
+      fb.textContent = correct ? ' O' : ' X';
+      fb.style.color = correct ? '#27ae60' : '#e74c3c';
+      fb.style.fontWeight = '900';
+      input.disabled = true;
+      if(correct) earned += 10; else allCorrect = false;
+    });
+    addScore(earned);
+
+    const btn = document.getElementById('checkIncenterBtn');
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'default';
+    showNotice(allCorrect ? `🎉 내심 개념 정답입니다! (+${earned}점)` : `일부 빈칸이 틀렸어요. (+${earned}점 획득)`);
+  }
+
+  const quizItems = [
+    { id: 1, text: "직각삼각형에서는 빗변의 중점에 위치한다", type: "circum" },
+    { id: 2, text: "내가 좋아하는 수학적 내용이다", type: "both" },
+    { id: 3, text: "둔각삼각형에서는 외부에 위치한다", type: "circum" },
+    { id: 4, text: "항상 삼각형의 내부에 위치한다", type: "incenter" },
+    { id: 5, text: "삼각형의 세 변에 이르는 거리가 같다", type: "incenter" },
+    { id: 6, text: "삼각형의 내접원의 중심이다", type: "incenter" },
+    { id: 7, text: "삼각형의 세 꼭짓점에 이르는 거리가 같다", type: "circum" },
+    { id: 8, text: "삼각형의 세 내각의 이등분선의 교점", type: "incenter" },
+    { id: 9, text: "삼각형의 세 변의 수직이등분선의 교점", type: "circum" }
+  ];
+
+  function initQuiz() {
+    const pool = document.getElementById('cardPool');
+    const circumC = document.getElementById('circumContent');
+    const incenterC = document.getElementById('incenterContent');
+    pool.innerHTML = ''; circumC.innerHTML = ''; incenterC.innerHTML = '';
+
+    let renderList = [];
+    quizItems.forEach(item => {
+      if(item.type === 'both'){
+        renderList.push({ ...item, uid: item.id + '-a' });
+        renderList.push({ ...item, uid: item.id + '-b' });
+      } else {
+        renderList.push({ ...item, uid: String(item.id) });
+      }
+    });
+
+    const shuffled = renderList.sort(() => Math.random() - 0.5);
+    shuffled.forEach(item => {
+      const card = document.createElement('div');
+      card.className = 'quiz-card';
+      card.draggable = true;
+      card.dataset.id = item.uid;
+      card.dataset.type = item.type;
+      card.innerHTML = `<span>${item.text}</span> <i class="fa-solid fa-grip-vertical" style="color:#A3B8AC;"></i>`;
+      
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.setData('text/plain', item.uid);
+        card.classList.add('dragging');
+      });
+      card.addEventListener('dragend', () => {
+        card.classList.remove('dragging');
+      });
+      
+      pool.appendChild(card);
+    });
+    
+    setupDropZone(document.getElementById('circumBoard'), 'circum');
+    setupDropZone(document.getElementById('incenterBoard'), 'incenter');
+  }
+
+  function setupDropZone(board, boardType) {
+    board.ondragover = (e) => {
+      e.preventDefault();
+      board.style.background = 'rgba(255,255,255,0.05)';
+    };
+    board.ondragleave = () => {
+      board.style.background = '';
+    };
+    board.ondrop = (e) => {
+      e.preventDefault();
+      board.style.background = '';
+      const cardId = e.dataTransfer.getData('text/plain');
+      if (!cardId) return;
+      const card = document.querySelector(`.quiz-card[data-id="${cardId}"]`);
+      if (!card) return;
+
+      if (card.dataset.type === boardType || card.dataset.type === 'both') {
+        board.querySelector('.board-content').appendChild(card);
+        card.draggable = false;
+        card.style.cursor = 'default';
+        const icon = card.querySelector('i');
+        icon.className = "fa-solid fa-circle-check";
+        icon.style.color = "#27ae60";
+        checkQuizComplete();
+      } else {
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 400);
+      }
+    };
+  }
+
+  const TOTAL_QUIZ_CARDS = quizItems.reduce((acc, item) => acc + (item.type === 'both' ? 2 : 1), 0);
+  function checkQuizComplete() {
+    const circumCount = document.getElementById('circumContent').children.length;
+    const incenterCount = document.getElementById('incenterContent').children.length;
+    
+    if (circumCount + incenterCount === TOTAL_QUIZ_CARDS) {
+      setTimeout(() => showNotice("🎉 대단해요! 헷갈리는 외심과 내심의 성질을 완벽하게 분류했습니다!"), 300);
+    }
+  }
+
+  function resetQuiz() { initQuiz(); }
+
+  const NS = "http://www.w3.org/2000/svg", SPACING = 40, W = 640, H = 520, MARGIN = 40;
+  function el(tag, attrs){ const e = document.createElementNS(NS, tag); for(k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function toSvgPoint(evt, sElem){
+    const pt = sElem.createSVGPoint();
+    const t = evt.touches && evt.touches[0] ? evt.touches[0] : evt;
+    pt.x = t.clientX; pt.y = t.clientY;
+    return pt.matrixTransform(sElem.getScreenCTM().inverse());
+  }
+  function snap(v){ return Math.round(v/SPACING)*SPACING; }
+  function dist(P,Q){ return Math.hypot(P.x-Q.x, P.y-Q.y); }
+  function formatCm(px){ return (Math.round((px/SPACING)*100)/100) + 'cm'; }
+  function normAngle(a){ while(a>Math.PI) a-=2*Math.PI; while(a<-Math.PI) a+=2*Math.PI; return a; }
+  
+  function fitViewBox(svgEl, points, baseW, baseH, padding){
+    padding = padding || 40;
+    let minX = 0, minY = 0, maxX = baseW, maxY = baseH;
+    points.forEach(p => {
+      minX = Math.min(minX, p.x - padding);
+      minY = Math.min(minY, p.y - padding);
+      maxX = Math.max(maxX, p.x + padding);
+      maxY = Math.max(maxY, p.y + padding);
+    });
+    
+    const targetRatio = baseW / baseH;
+    let w = maxX - minX;
+    let h = maxY - minY;
+    let currentRatio = w / h;
+    
+    if (currentRatio > targetRatio) {
+      let newH = w / targetRatio;
+      let diff = newH - h;
+      minY -= diff / 2;
+      maxY += diff / 2;
+    } else {
+      let newW = h * targetRatio;
+      let diff = newW - w;
+      minX -= diff / 2;
+      maxX += diff / 2;
+    }
+    
+    svgEl.setAttribute('viewBox', `${minX} ${minY} ${maxX - minX} ${maxY - minY}`);
+  }
+
+  function circumcenterOf(A,B,C){
+    const ax=A.x, ay=A.y, bx=B.x, by=B.y, cx=C.x, cy=C.y;
+    const d = 2*(ax*(by-cy)+bx*(cy-ay)+cx*(ay-by));
+    return { x: ((ax*ax+ay*ay)*(by-cy)+(bx*bx+by*by)*(cy-ay)+(cx*cx+cy*cy)*(ay-by))/d,
+             y: ((ax*ax+ay*ay)*(cx-bx)+(bx*bx+by*by)*(ax-cx)+(cx*cx+cy*cy)*(bx-ax))/d };
+  }
+  function incenterOf(A,B,C){
+    const a = dist(B,C), b = dist(A,C), c = dist(A,B), s = a+b+c;
+    return { x:(a*A.x+b*B.x+c*C.x)/s, y:(a*A.y+b*B.y+c*C.y)/s };
+  }
+  function area2(A,B,C){ return Math.abs((B.x-A.x)*(C.y-A.y)-(C.x-A.x)*(B.y-A.y)); }
+  function perpFoot(X,P1,P2){
+    const dx=P2.x-P1.x, dy=P2.y-P1.y, len2 = dx*dx+dy*dy;
+    let t = Math.max(0, Math.min(1, ((X.x-P1.x)*dx+(X.y-P1.y)*dy)/len2));
+    return { x:P1.x+t*dx, y:P1.y+t*dy };
+  }
+  function drawPointMarker(P, label, color){
+    const g = el('g',{});
+    g.appendChild(el('circle',{cx:P.x, cy:P.y, r:5, fill:color, stroke:'#fff', 'stroke-width':1.5}));
+    const t = el('text',{x:P.x+10, y:P.y-8, 'font-size':15, 'font-family':"'Gowun Dodum',sans-serif", fill:color});
+    t.textContent = label; g.appendChild(t); return g;
+  }
+
+  function drawGrid(layerId, w, h){
+    const layer = document.getElementById(layerId);
+    layer.innerHTML = '';
+    for(let x=0; x<=w; x+=SPACING) layer.appendChild(el('line',{x1:x,y1:0,x2:x,y2:h,stroke:'var(--grid-line)','stroke-width':1}));
+    for(let y=0; y<=h; y+=SPACING) layer.appendChild(el('line',{x1:0,y1:y,x2:w,y2:y,stroke:'var(--grid-line)','stroke-width':1}));
+  }
+  drawGrid('gridLayerCircum', W, H);
+  drawGrid('gridLayer', W, H);
+  drawGrid('gridLayer3', 640, 600);
+
+  // ---------------- STEP 1-1 외심 탐구 로직 ----------------
+  let sc = { points: [], stage: 'placing', perpDone: {a:false,b:false,c:false}, circumPoint: null, distDone: {A:false,B:false,C:false}, conceptChecked: false };
+  const svgC = document.getElementById('boardCircum');
+  
+  document.getElementById('resetBtnCircum').addEventListener('click', () => {
+    sc = { points: [], stage: 'placing', perpDone: {a:false,b:false,c:false}, circumPoint: null, distDone: {A:false,B:false,C:false}, conceptChecked: false };
+    document.getElementById('triangleLayerCircum').innerHTML = '';
+    document.getElementById('perpLayerCircum').innerHTML = '';
+    document.getElementById('circumDistanceLayer').innerHTML = '';
+    document.getElementById('circumcenterLayer').innerHTML = '';
+    svgC.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    document.getElementById('instructionCircum').innerHTML = '모눈종이 위 원하는 곳을 클릭해 삼각형의 첫 번째 꼭짓점 <b>A</b>를 찍어보세요.';
+    const cBox = document.getElementById('circumConceptBox');
+    cBox.style.display = 'none';
+    document.getElementById('circumConceptBlank').value = '';
+    document.getElementById('circumConceptBlank').disabled = false;
+    document.getElementById('circumConceptFeedback').textContent = '';
+    const cBtn = document.getElementById('circumConceptBtn');
+    cBtn.disabled = false; cBtn.style.opacity = ''; cBtn.style.cursor = '';
+    updateChecklistCircum();
+  });
+
+  function checkCircumConcept(){
+    if(sc.conceptChecked) return;
+    sc.conceptChecked = true;
+    const val = document.getElementById('circumConceptBlank').value.trim().replace(/\s/g,'');
+    const correct = (val === '세꼭짓점');
+    const fb = document.getElementById('circumConceptFeedback');
+    fb.textContent = correct ? 'O' : 'X';
+    fb.style.color = correct ? '#27ae60' : '#e74c3c';
+    document.getElementById('circumConceptBlank').disabled = true;
+    const btn = document.getElementById('circumConceptBtn');
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'default';
+    if(correct) addScore(20);
+
+    sc.stage = 'done';
+    state.isStep1CircumDone = true;
+    document.getElementById('instructionCircum').innerHTML = correct
+      ? '🎉 정답입니다! (+20점) 상단의 [Step 1-2 내심 탐구]로 이동하세요.'
+      : '아쉬워요, 오답이에요. 상단의 [Step 1-2 내심 탐구]로 이동하세요.';
+    updateChecklistCircum();
+  }
+
+  function updateChecklistCircum(){
+    const order = {placing:1, perp:2, circumcenter:3, distances:4, concept:5, done:5};
+    const current = order[sc.stage];
+    document.querySelectorAll('#checklistCircum li').forEach((li,i)=>{
+      const n = i+1;
+      li.classList.remove('active','done');
+      if(n < current || sc.stage==='done') li.classList.add('done');
+      else if(n === current) li.classList.add('active');
+    });
+  }
+
+  svgC.addEventListener('click', function(evt){
+    const sp = toSvgPoint(evt, svgC);
+    if(sc.stage==='placing'){
+      const gx = snap(sp.x), gy = snap(sp.y);
+      if(gx < MARGIN || gx > W-MARGIN || gy < MARGIN || gy > H-MARGIN) return;
+      if(sc.points.some(p => p.x===gx && p.y===gy)) return;
+      const labels = ['A','B','C'];
+      const pt = {x:gx, y:gy, label: labels[sc.points.length]};
+      if(sc.points.length===2 && area2(sc.points[0], sc.points[1], pt) < 60) return;
+      sc.points.push(pt);
+      document.getElementById('triangleLayerCircum').appendChild(drawPointMarker(pt, pt.label, 'var(--ink)'));
+      if(sc.points.length < 3){
+        document.getElementById('instructionCircum').innerHTML = `이어서 <b>${labels[sc.points.length]}</b> 점을 찍어보세요.`;
+      } else {
+        const [A,B,C] = sc.points;
+        [[A,B],[B,C],[C,A]].forEach(([P,Q])=>{
+          document.getElementById('triangleLayerCircum').insertBefore(el('line',{x1:P.x,y1:P.y,x2:Q.x,y2:Q.y,stroke:'var(--ink)','stroke-width':2}), document.getElementById('triangleLayerCircum').firstChild);
+        });
+        sc.stage = 'perp';
+        document.getElementById('instructionCircum').innerHTML = '세 변을 클릭해 각각 색상이 다른 수직이등분선을 그려요.';
+        updateChecklistCircum();
+      }
+    } else if(sc.stage==='perp'){
+      const [A,B,C] = sc.points;
+      const sides = { a:{p1:B,p2:C,col:'#E05359'}, b:{p1:C,p2:A,col:'#27ae60'}, c:{p1:A,p2:B,col:'#4A90D9'} };
+      let target = null;
+      for(const k in sides){
+        if(sc.perpDone[k]) continue;
+        if(dist(sp, perpFoot(sp, sides[k].p1, sides[k].p2)) < 24) { target = k; break; }
+      }
+      if(!target) return;
+      const {p1, p2, col} = sides[target];
+      const mid = {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
+      const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.hypot(dx,dy);
+      let ux = -dy/len, uy = dx/len;
+      
+      document.getElementById('perpLayerCircum').appendChild(el('line',{x1:mid.x-ux*1000, y1:mid.y-uy*1000, x2:mid.x+ux*1000, y2:mid.y+uy*1000, stroke:col, 'stroke-width':2, 'stroke-dasharray':'5,4'}));
+      
+      const center = {x:(A.x+B.x+C.x)/3, y:(A.y+B.y+C.y)/3};
+      let vx = mid.x - center.x, vy = mid.y - center.y;
+      if(vx*ux + vy*uy > 0) { ux *= -1; uy *= -1; }
+
+      const rSize = Math.min(12, len * 0.25);
+      const sxu = dx/len, syu = dy/len;
+      const rP1 = { x: mid.x + sxu*rSize, y: mid.y + syu*rSize };
+      const rP2 = { x: rP1.x + ux*rSize, y: rP1.y + uy*rSize };
+      const rP3 = { x: mid.x + ux*rSize, y: mid.y + uy*rSize };
+      document.getElementById('perpLayerCircum').appendChild(el('path',{
+        d: `M ${rP1.x} ${rP1.y} L ${rP2.x} ${rP2.y} L ${rP3.x} ${rP3.y}`,
+        stroke: col, 'stroke-width': 2, fill: 'none'
+      }));
+
+      const tdx = -dy/len, tdy = dx/len, tickLen = Math.min(6, len * 0.15);
+      const tick1 = { x:(p1.x+mid.x)/2, y:(p1.y+mid.y)/2 };
+      const tick2 = { x:(mid.x+p2.x)/2, y:(mid.y+p2.y)/2 };
+      [tick1, tick2].forEach(tp => {
+        document.getElementById('perpLayerCircum').appendChild(el('line',{
+          x1: tp.x - tdx*tickLen, y1: tp.y - tdy*tickLen,
+          x2: tp.x + tdx*tickLen, y2: tp.y + tdy*tickLen,
+          stroke: col, 'stroke-width': 2
+        }));
+      });
+
+      sc.perpDone[target] = true;
+      if(Object.values(sc.perpDone).filter(Boolean).length === 3){
+        sc.stage = 'circumcenter';
+        const trueOPreview = circumcenterOf(A,B,C);
+        fitViewBox(svgC, [A,B,C,trueOPreview], W, H, 50);
+        document.getElementById('instructionCircum').innerHTML = '세 수직이등분선의 교점(외심 O)을 클릭해요.';
+        updateChecklistCircum();
+      }
+    } else if(sc.stage==='circumcenter'){
+      const [A,B,C] = sc.points;
+      const trueO = circumcenterOf(A,B,C);
+      if(dist(sp, trueO) > 40) return;
+      sc.circumPoint = trueO;
+      document.getElementById('circumcenterLayer').appendChild(el('circle',{cx:trueO.x, cy:trueO.y, r:6, fill:'#F2C94C', stroke:'#fff','stroke-width':1.5}));
+      const t = el('text',{x:trueO.x+10, y:trueO.y-8, 'font-size':18, 'font-weight':'900', fill:'#F2C94C', 'font-family':"'Gowun Dodum',sans-serif"});
+      t.textContent = 'O';
+      document.getElementById('circumcenterLayer').appendChild(t);
+      
+      sc.stage = 'distances';
+      document.getElementById('instructionCircum').innerHTML = '외심(O)에서 세 꼭짓점(A, B, C)을 클릭해 거리를 재요.';
+      updateChecklistCircum();
+    } else if(sc.stage==='distances'){
+      const [A,B,C] = sc.points;
+      const verts = { A, B, C };
+      let target = null;
+      for(const k in verts){
+        if(sc.distDone[k]) continue;
+        if(dist(sp, verts[k]) < 30) { target = k; break; }
+      }
+      if(!target) return;
+      const O = sc.circumPoint, V = verts[target];
+      sc.distDone[target] = true;
+
+      document.getElementById('circumDistanceLayer').appendChild(el('line',{x1:O.x, y1:O.y, x2:V.x, y2:V.y, stroke:'#F2C94C', 'stroke-width':2, 'stroke-dasharray':'4,3'}));
+
+      const distMid = { x:(O.x+V.x)/2, y:(O.y+V.y)/2 };
+      const distLabel = el('text',{x:distMid.x+8, y:distMid.y-6, 'font-size':13, 'font-weight':'800', fill:'#F2C94C', 'font-family':"'Gowun Dodum',sans-serif"});
+      distLabel.textContent = formatCm(dist(O,V));
+      document.getElementById('circumDistanceLayer').appendChild(distLabel);
+
+      if(Object.values(sc.distDone).filter(Boolean).length === 3){
+        sc.stage = 'concept';
+        document.getElementById('instructionCircum').innerHTML = '🎉 측정 완료! 오른쪽 개념 정리 칸을 채워 20점을 획득해보세요.';
+        document.getElementById('circumConceptBox').style.display = 'block';
+        updateChecklistCircum();
+      }
+    }
+  });
+  updateChecklistCircum();
+
+  // ---------------- STEP 1-2 내심 탐구 로직 ----------------
+  let si = { points: [], stage: 'placing', bisectorsDone: {A:false,B:false,C:false}, incenterPoint: null, distDone: {a:false,b:false,c:false}, conceptChecked: false };
+  const svgI = document.getElementById('board');
+
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    si = { points: [], stage: 'placing', bisectorsDone: {A:false,B:false,C:false}, incenterPoint: null, distDone: {a:false,b:false,c:false}, conceptChecked: false };
+    document.getElementById('triangleLayer').innerHTML = '';
+    document.getElementById('bisectorLayer').innerHTML = '';
+    document.getElementById('distanceLayer').innerHTML = '';
+    document.getElementById('incenterLayer').innerHTML = '';
+    svgI.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    document.getElementById('instruction').innerHTML = '모눈종이 위 원하는 곳을 클릭해 삼각형의 첫 번째 꼭짓점 <b>A</b>를 찍어보세요.';
+    const iBox = document.getElementById('incenterConceptBox');
+    iBox.style.display = 'none';
+    document.getElementById('incenterConceptBlank').value = '';
+    document.getElementById('incenterConceptBlank').disabled = false;
+    document.getElementById('incenterConceptFeedback').textContent = '';
+    const iBtn = document.getElementById('incenterConceptBtn');
+    iBtn.disabled = false; iBtn.style.opacity = ''; iBtn.style.cursor = '';
+    updateChecklistIncenter();
+  });
+
+  function checkIncenterConcept(){
+    if(si.conceptChecked) return;
+    si.conceptChecked = true;
+    const val = document.getElementById('incenterConceptBlank').value.trim().replace(/\s/g,'');
+    const correct = (val === '세변');
+    const fb = document.getElementById('incenterConceptFeedback');
+    fb.textContent = correct ? 'O' : 'X';
+    fb.style.color = correct ? '#27ae60' : '#e74c3c';
+    document.getElementById('incenterConceptBlank').disabled = true;
+    const btn = document.getElementById('incenterConceptBtn');
+    btn.disabled = true; btn.style.opacity = '0.5'; btn.style.cursor = 'default';
+    if(correct) addScore(20);
+
+    si.stage = 'done';
+    state.isStep1IncenterDone = true;
+    document.getElementById('instruction').innerHTML = correct
+      ? '🎉 정답입니다! (+20점) 상단의 [Step 2 개념확인]으로 이동하세요.'
+      : '아쉬워요, 오답이에요. 상단의 [Step 2 개념확인]으로 이동하세요.';
+    updateChecklistIncenter();
+  }
+
+  function updateChecklistIncenter(){
+    const order = {placing:1, bisectors:2, incenter:3, distances:4, concept:5, done:5};
+    const current = order[si.stage];
+    document.querySelectorAll('#checklist li').forEach((li,i)=>{
+      const n = i+1;
+      li.classList.remove('active','done');
+      if(n < current || si.stage==='done') li.classList.add('done');
+      else if(n === current) li.classList.add('active');
+    });
+  }
+
+  svgI.addEventListener('click', function(evt){
+    const sp = toSvgPoint(evt, svgI);
+    if(si.stage==='placing'){
+      const gx = snap(sp.x), gy = snap(sp.y);
+      if(gx < MARGIN || gx > W-MARGIN || gy < MARGIN || gy > H-MARGIN) return;
+      if(si.points.some(p => p.x===gx && p.y===gy)) return;
+      const labels = ['A','B','C'];
+      const pt = {x:gx, y:gy, label: labels[si.points.length]};
+      if(si.points.length===2 && area2(si.points[0], si.points[1], pt) < 60) return;
+      si.points.push(pt);
+      document.getElementById('triangleLayer').appendChild(drawPointMarker(pt, pt.label, 'var(--ink)'));
+      if(si.points.length < 3){
+        document.getElementById('instruction').innerHTML = `이어서 <b>${labels[si.points.length]}</b> 점을 찍어보세요.`;
+      } else {
+        const [A,B,C] = si.points;
+        [[A,B],[B,C],[C,A]].forEach(([P,Q])=>{
+          document.getElementById('triangleLayer').insertBefore(el('line',{x1:P.x,y1:P.y,x2:Q.x,y2:Q.y,stroke:'var(--ink)','stroke-width':2}), document.getElementById('triangleLayer').firstChild);
+        });
+        si.stage = 'bisectors';
+        document.getElementById('instruction').innerHTML = '세 꼭짓점을 클릭해 색상별 내각의 이등분선을 그려요.';
+        updateChecklistIncenter();
+      }
+    } else if(si.stage==='bisectors'){
+      const [A,B,C] = si.points;
+      const verts = {A,B,C};
+      const bisData = { A:{col:'#4A90D9', sym:'○'}, B:{col:'#E05359', sym:'△'}, C:{col:'#27ae60', sym:'×'} };
+      let target = null;
+      for(const k of ['A','B','C']){
+        if(si.bisectorsDone[k]) continue;
+        if(dist(sp, verts[k]) < 25) { target = k; break; }
+      }
+      if(!target) return;
+      const V = verts[target], P = target==='A'?B:(target==='B'?A:A), Q = target==='A'?C:(target==='B'?C:B);
+      const lenVP = dist(V,P), lenVQ = dist(V,Q);
+      const foot = { x:(lenVQ*P.x+lenVP*Q.x)/(lenVP+lenVQ), y:(lenVQ*P.y+lenVP*Q.y)/(lenVP+lenVQ) };
+      const lenVIraw = dist(V, foot);
+      const bux = (foot.x-V.x)/lenVIraw, buy = (foot.y-V.y)/lenVIraw;
+
+      document.getElementById('bisectorLayer').appendChild(el('line',{x1:V.x-bux*1000, y1:V.y-buy*1000, x2:V.x+bux*1000, y2:V.y+buy*1000, stroke:bisData[target].col, 'stroke-width':2, 'stroke-dasharray':'5,4'}));
+
+      const dirP = { x:(P.x-V.x)/lenVP, y:(P.y-V.y)/lenVP };
+      const dirQ = { x:(Q.x-V.x)/lenVQ, y:(Q.y-V.y)/lenVQ };
+      const lenVI = dist(V, foot);
+      const arcR = Math.min(20, lenVP*0.35, lenVQ*0.35, lenVI*0.6);
+      const dirBis = { x:(foot.x-V.x)/lenVI, y:(foot.y-V.y)/lenVI };
+
+      const angP = Math.atan2(dirP.y, dirP.x), angBis = Math.atan2(dirBis.y, dirBis.x), angQ = Math.atan2(dirQ.y, dirQ.x);
+      const sweepFlag = normAngle(angBis-angP) > 0 ? 1 : 0;
+
+      const arcPt = (ang) => ({ x: V.x + Math.cos(ang)*arcR, y: V.y + Math.sin(ang)*arcR });
+      const pA = arcPt(angP), pB = arcPt(angBis), pC = arcPt(angQ);
+      document.getElementById('bisectorLayer').appendChild(el('path',{
+        d: `M ${pA.x} ${pA.y} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${pB.x} ${pB.y}`,
+        stroke: bisData[target].col, 'stroke-width':1.5, fill:'none'
+      }));
+      document.getElementById('bisectorLayer').appendChild(el('path',{
+        d: `M ${pB.x} ${pB.y} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${pC.x} ${pC.y}`,
+        stroke: bisData[target].col, 'stroke-width':1.5, fill:'none'
+      }));
+
+      const dirMid1 = { x:dirP.x+dirBis.x, y:dirP.y+dirBis.y };
+      const dirMid2 = { x:dirBis.x+dirQ.x, y:dirBis.y+dirQ.y };
+      [dirMid1, dirMid2].forEach(d => {
+        const dl = Math.hypot(d.x, d.y) || 1;
+        const symPos = { x: V.x + (d.x/dl)*(arcR+9), y: V.y + (d.y/dl)*(arcR+9) };
+        const symText = el('text',{x:symPos.x, y:symPos.y, 'font-size':'12', 'font-weight':'900', fill:bisData[target].col, 'text-anchor':'middle', 'dominant-baseline':'middle'});
+        symText.textContent = bisData[target].sym;
+        document.getElementById('bisectorLayer').appendChild(symText);
+      });
+
+      si.bisectorsDone[target] = true;
+      if(Object.values(si.bisectorsDone).filter(Boolean).length === 3){
+        si.stage = 'incenter';
+        const trueIPreview = incenterOf(A,B,C);
+        fitViewBox(svgI, [A,B,C,trueIPreview], W, H, 50);
+        document.getElementById('instruction').innerHTML = '세 이등분선의 교점(내심 I)을 클릭해요.';
+        updateChecklistIncenter();
+      }
+    } else if(si.stage==='incenter'){
+      const [A,B,C] = si.points;
+      const trueI = incenterOf(A,B,C);
+      if(dist(sp, trueI) > 40) return;
+      si.incenterPoint = trueI;
+      
+      document.getElementById('incenterLayer').appendChild(el('circle',{cx:trueI.x, cy:trueI.y, r:6, fill:'#F2C94C', stroke:'#fff','stroke-width':1.5}));
+      const t = el('text',{x:trueI.x+10, y:trueI.y-8, 'font-size':18, 'font-weight':'900', fill:'#F2C94C', 'font-family':"'Gowun Dodum',sans-serif"});
+      t.textContent = 'I';
+      document.getElementById('incenterLayer').appendChild(t);
+
+      si.stage = 'distances';
+      document.getElementById('instruction').innerHTML = '세 변을 클릭해 내심에서 변까지의 수직 거리(수선)를 재요.';
+      updateChecklistIncenter();
+    } else if(si.stage==='distances'){
+      const [A,B,C] = si.points;
+      const sides = { a:{p1:B,p2:C}, b:{p1:C,p2:A}, c:{p1:A,p2:B} };
+      let target = null;
+      for(const k in sides){
+        if(si.distDone[k]) continue;
+        if(dist(sp, perpFoot(sp, sides[k].p1, sides[k].p2)) < 24) { target = k; break; }
+      }
+      if(!target) return;
+      const I = si.incenterPoint;
+      const foot = perpFoot(I, sides[target].p1, sides[target].p2);
+      si.distDone[target] = true;
+
+      document.getElementById('distanceLayer').appendChild(el('line',{x1:I.x, y1:I.y, x2:foot.x, y2:foot.y, stroke:'#F2C94C', 'stroke-width':2, 'stroke-dasharray':'4,3'}));
+      
+      const p1 = sides[target].p1, p2 = sides[target].p2;
+      const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy);
+      if(len > 0){
+        const ux = dx/len, uy = dy/len, vx = -uy, vy = ux;
+        let signV = 1;
+        if (vx * (I.x - (p1.x+p2.x)/2) + vy * (I.y - (p1.y+p2.y)/2) < 0) signV = -1;
+        const rSize = 10;
+        document.getElementById('distanceLayer').appendChild(el('path',{
+          d: `M ${foot.x + ux*rSize} ${foot.y + uy*rSize} L ${foot.x + ux*rSize + (vx*signV)*rSize} ${foot.y + uy*rSize + (vy*signV)*rSize} L ${foot.x + (vx*signV)*rSize} ${foot.y + (vy*signV)*rSize}`,
+          stroke: '#F2C94C', 'stroke-width': '2', fill: 'none'
+        }));
+      }
+
+      const distMid = { x:(I.x+foot.x)/2, y:(I.y+foot.y)/2 };
+      const distLabel = el('text',{x:distMid.x+8, y:distMid.y-6, 'font-size':13, 'font-weight':'800', fill:'#F2C94C', 'font-family':"'Gowun Dodum',sans-serif"});
+      distLabel.textContent = formatCm(dist(I, foot));
+      document.getElementById('distanceLayer').appendChild(distLabel);
+
+      if(Object.values(si.distDone).filter(Boolean).length === 3){
+        si.stage = 'concept';
+        document.getElementById('instruction').innerHTML = '🎉 측정 완료! 오른쪽 개념 정리 칸을 채워 20점을 획득해보세요.';
+        document.getElementById('incenterConceptBox').style.display = 'block';
+        updateChecklistIncenter();
+      }
+    }
+  });
+  updateChecklistIncenter();
+
+  // ---------------- STEP 3 모양별 탐구 ----------------
+  const TRIANGLES3 = {
+    acute: { A:{x:320,y:120}, B:{x:160,y:420}, C:{x:480,y:420} },
+    right: { A:{x:160,y:120}, B:{x:160,y:420}, C:{x:480,y:420} },
+    obtuse:{ A:{x:320,y:340}, B:{x:160,y:420}, C:{x:480,y:420} }
+  };
+  let s3 = { mode:'circum', type:'acute', points:null, stage:null, perpDone:{}, bisDone:{}, centerPoint:null };
+  const svg3 = document.getElementById('board3');
+
+  function updateChecklist3(stepNum, allDone){
+    document.querySelectorAll('#checklist3 li').forEach((li,i)=>{
+      const n = i+1;
+      li.classList.remove('active','done');
+      if(allDone || n < stepNum) li.classList.add('done');
+      else if(n === stepNum) li.classList.add('active');
+    });
+  }
+
+  function initStage3(){
+    const src = TRIANGLES3[s3.type];
+    s3.points = { A:{x:src.A.x,y:src.A.y,label:'A'}, B:{x:src.B.x,y:src.B.y,label:'B'}, C:{x:src.C.x,y:src.C.y,label:'C'} };
+    s3.perpDone = {a:false,b:false,c:false};
+    s3.bisDone = {A:false,B:false,C:false};
+    s3.centerPoint = null;
+    s3.stage = s3.mode==='circum' ? 'perp' : 'bisectors';
+
+    ['triangleLayer3','bisectorLayer3','perpBisectorLayer3','incenterLayer3','circumcenterLayer3'].forEach(id=>{
+      document.getElementById(id).innerHTML = '';
+    });
+    svg3.setAttribute('viewBox', '0 0 640 600');
+
+    const {A,B,C} = s3.points;
+    [[A,B],[B,C],[C,A]].forEach(([P,Q])=>{
+      document.getElementById('triangleLayer3').appendChild(el('line',{x1:P.x,y1:P.y,x2:Q.x,y2:Q.y,stroke:'#223328','stroke-width':2}));
+    });
+    [A,B,C].forEach(p => document.getElementById('triangleLayer3').appendChild(drawPointMarker(p, p.label, '#223328')));
+
+    document.getElementById('instruction3').innerHTML = s3.mode==='circum'
+      ? '세 변을 클릭해 각각 수직이등분선을 그려요.'
+      : '세 꼭짓점을 클릭해 각각 내각의 이등분선을 그려요.';
+    updateChecklist3(3);
+  }
+
+  window.selectMode3 = function(mode){
+    s3.mode = mode;
+    document.querySelectorAll('.mode-row .type-btn').forEach(b => b.classList.toggle('active', b.dataset.mode===mode));
+    document.getElementById('checklistStep3Text').textContent = mode==='circum' ? '세 변의 수직이등분선을 그려요.' : '세 내각의 이등분선을 그려요.';
+    document.getElementById('checklistStep4Text').textContent = mode==='circum' ? '세 수직이등분선의 교점(외심 O)을 클릭해 위치를 확인해요.' : '세 이등분선의 교점(내심 I)을 클릭해 위치를 확인해요.';
+    initStage3();
+  }
+
+  window.selectTriangleType3 = function(type){
+    s3.type = type;
+    document.querySelectorAll('.triangle-type-row .type-btn').forEach(b => b.classList.toggle('active', b.dataset.type===type));
+    initStage3();
+  }
+
+  document.getElementById('reset3Btn').addEventListener('click', initStage3);
+
+  svg3.addEventListener('click', function(evt){
+    if(!s3.points) return;
+    const sp = toSvgPoint(evt, svg3);
+    const {A,B,C} = s3.points;
+
+    if(s3.mode==='circum' && s3.stage==='perp'){
+      const sidesDef = { a:{p1:B,p2:C,col:'#E05359'}, b:{p1:C,p2:A,col:'#27ae60'}, c:{p1:A,p2:B,col:'#4A90D9'} };
+      let target = null;
+      for(const k in sidesDef){
+        if(s3.perpDone[k]) continue;
+        if(dist(sp, perpFoot(sp, sidesDef[k].p1, sidesDef[k].p2)) < 24) { target = k; break; }
+      }
+      if(!target) return;
+      const {p1, p2, col} = sidesDef[target];
+      const mid = {x:(p1.x+p2.x)/2, y:(p1.y+p2.y)/2};
+      const dx = p2.x-p1.x, dy = p2.y-p1.y, len = Math.hypot(dx,dy);
+      let ux = -dy/len, uy = dx/len;
+      document.getElementById('perpBisectorLayer3').appendChild(el('line',{x1:mid.x-ux*1000, y1:mid.y-uy*1000, x2:mid.x+ux*1000, y2:mid.y+uy*1000, stroke:col, 'stroke-width':2, 'stroke-dasharray':'5,4'}));
+
+      const center = {x:(A.x+B.x+C.x)/3, y:(A.y+B.y+C.y)/3};
+      let vx = mid.x - center.x, vy = mid.y - center.y;
+      if(vx*ux + vy*uy > 0) { ux *= -1; uy *= -1; }
+
+      const rSize = Math.min(12, len * 0.25);
+      const sxu = dx/len, syu = dy/len;
+      const rP1 = { x: mid.x + sxu*rSize, y: mid.y + syu*rSize };
+      const rP2 = { x: rP1.x + ux*rSize, y: rP1.y + uy*rSize };
+      const rP3 = { x: mid.x + ux*rSize, y: mid.y + uy*rSize };
+      document.getElementById('perpBisectorLayer3').appendChild(el('path',{
+        d: `M ${rP1.x} ${rP1.y} L ${rP2.x} ${rP2.y} L ${rP3.x} ${rP3.y}`, stroke: col, 'stroke-width': 2, fill: 'none'
+      }));
+
+      const tdx = -dy/len, tdy = dx/len, tickLen = Math.min(6, len * 0.15);
+      const tick1 = { x:(p1.x+mid.x)/2, y:(p1.y+mid.y)/2 };
+      const tick2 = { x:(mid.x+p2.x)/2, y:(mid.y+p2.y)/2 };
+      [tick1, tick2].forEach(tp => {
+        document.getElementById('perpBisectorLayer3').appendChild(el('line',{
+          x1: tp.x - tdx*tickLen, y1: tp.y - tdy*tickLen, x2: tp.x + tdx*tickLen, y2: tp.y + tdy*tickLen, stroke: col, 'stroke-width': 2
+        }));
+      });
+
+      s3.perpDone[target] = true;
+      if(Object.values(s3.perpDone).filter(Boolean).length === 3){
+        s3.stage = 'center';
+        fitViewBox(svg3, [A,B,C,circumcenterOf(A,B,C)], 640, 600, 50);
+        document.getElementById('instruction3').innerHTML = '세 수직이등분선의 교점을 클릭해 외심(O)을 찾아보세요.';
+        updateChecklist3(4);
+      }
+    } else if(s3.mode==='incenter' && s3.stage==='bisectors'){
+      const verts = {A,B,C};
+      const bisData = { A:{col:'#4A90D9', sym:'○'}, B:{col:'#E05359', sym:'△'}, C:{col:'#27ae60', sym:'×'} };
+      let target = null;
+      for(const k of ['A','B','C']){
+        if(s3.bisDone[k]) continue;
+        if(dist(sp, verts[k]) < 25) { target = k; break; }
+      }
+      if(!target) return;
+      const V = verts[target], P = target==='A'?B:(target==='B'?A:A), Q = target==='A'?C:(target==='B'?C:B);
+      const lenVP = dist(V,P), lenVQ = dist(V,Q);
+      const foot = { x:(lenVQ*P.x+lenVP*Q.x)/(lenVP+lenVQ), y:(lenVQ*P.y+lenVP*Q.y)/(lenVP+lenVQ) };
+      const lenVIraw = dist(V, foot);
+      const bux = (foot.x-V.x)/lenVIraw, buy = (foot.y-V.y)/lenVIraw;
+      document.getElementById('bisectorLayer3').appendChild(el('line',{x1:V.x-bux*1000, y1:V.y-buy*1000, x2:V.x+bux*1000, y2:V.y+buy*1000, stroke:bisData[target].col, 'stroke-width':2, 'stroke-dasharray':'5,4'}));
+
+      const dirP = { x:(P.x-V.x)/lenVP, y:(P.y-V.y)/lenVP };
+      const dirQ = { x:(Q.x-V.x)/lenVQ, y:(Q.y-V.y)/lenVQ };
+      const lenVI = dist(V, foot);
+      const arcR = Math.min(20, lenVP*0.35, lenVQ*0.35, lenVI*0.6);
+      const dirBis = { x:(foot.x-V.x)/lenVI, y:(foot.y-V.y)/lenVI };
+      const angP = Math.atan2(dirP.y, dirP.x), angBis = Math.atan2(dirBis.y, dirBis.x), angQ = Math.atan2(dirQ.y, dirQ.x);
+      const sweepFlag = normAngle(angBis-angP) > 0 ? 1 : 0;
+      const arcPt = (ang) => ({ x: V.x + Math.cos(ang)*arcR, y: V.y + Math.sin(ang)*arcR });
+      const pA = arcPt(angP), pB = arcPt(angBis), pC = arcPt(angQ);
+      document.getElementById('bisectorLayer3').appendChild(el('path',{ d:`M ${pA.x} ${pA.y} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${pB.x} ${pB.y}`, stroke:bisData[target].col, 'stroke-width':1.5, fill:'none' }));
+      document.getElementById('bisectorLayer3').appendChild(el('path',{ d:`M ${pB.x} ${pB.y} A ${arcR} ${arcR} 0 0 ${sweepFlag} ${pC.x} ${pC.y}`, stroke:bisData[target].col, 'stroke-width':1.5, fill:'none' }));
+
+      const dirMid1 = { x:dirP.x+dirBis.x, y:dirP.y+dirBis.y };
+      const dirMid2 = { x:dirBis.x+dirQ.x, y:dirBis.y+dirQ.y };
+      [dirMid1, dirMid2].forEach(d => {
+        const dl = Math.hypot(d.x, d.y) || 1;
+        const symPos = { x: V.x + (d.x/dl)*(arcR+9), y: V.y + (d.y/dl)*(arcR+9) };
+        const symText = el('text',{x:symPos.x, y:symPos.y, 'font-size':'12', 'font-weight':'900', fill:bisData[target].col, 'text-anchor':'middle', 'dominant-baseline':'middle'});
+        symText.textContent = bisData[target].sym;
+        document.getElementById('bisectorLayer3').appendChild(symText);
+      });
+
+      s3.bisDone[target] = true;
+      if(Object.values(s3.bisDone).filter(Boolean).length === 3){
+        s3.stage = 'center';
+        fitViewBox(svg3, [A,B,C,incenterOf(A,B,C)], 640, 600, 50);
+        document.getElementById('instruction3').innerHTML = '세 이등분선의 교점을 클릭해 내심(I)을 찾아보세요.';
+        updateChecklist3(4);
+      }
+    } else if(s3.stage==='center'){
+      let truePt, label, layerId;
+      if(s3.mode==='circum'){
+        truePt = circumcenterOf(A,B,C);
+        label = 'O'; layerId = 'circumcenterLayer3';
+      } else {
+        truePt = incenterOf(A,B,C);
+        label = 'I'; layerId = 'incenterLayer3';
+      }
+      if(dist(sp, truePt) > 40) return;
+      s3.centerPoint = truePt;
+      document.getElementById(layerId).appendChild(el('circle',{cx:truePt.x, cy:truePt.y, r:6, fill:'#F2C94C', stroke:'#fff','stroke-width':1.5}));
+      const t = el('text',{x:truePt.x+10, y:truePt.y-8, 'font-size':18, 'font-weight':'900', fill:'#F2C94C', 'font-family':"'Gowun Dodum',sans-serif"});
+      t.textContent = label;
+      document.getElementById(layerId).appendChild(t);
+
+      document.getElementById('instruction3').innerHTML = `🎉 ${label}을(를) 찾았어요! (+5점) 이 삼각형에서 ${s3.mode==='circum'?'외심':'내심'}이 어디에 있는지 직접 관찰하고, [Step 4 지식공유보드]에 기록해보세요.`;
+      addScore(5);
+      s3.stage = 'done';
+      updateChecklist3(4, true);
+    }
+  });
+
+  initStage3();
+
+  // ---------------- STEP 4 지식 공유 보드 ----------------
+  window.renderPosts = function(posts) {
+    const grid = document.getElementById('postsGrid'), statusBar = document.getElementById('liveStatusBar');
+    if(!grid || !statusBar) return;
+    grid.innerHTML = '';
+    if(posts.length===0){ statusBar.innerHTML = '<span style="color:#7CA38E; font-size:13px;">아직 기록이 없습니다.</span>'; return; }
+    statusBar.innerHTML = posts.map(p => `<div class="group-badge"><i class="fa-solid fa-circle-check"></i> ${escapeHtml(p.q1)}</div>`).join('');
+    posts.forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'post-card';
+      card.innerHTML = `<div><div class="card-header">${escapeHtml(p.q1)}</div>
+        <div class="q-block mt-2" style="line-height: 1.6;">
+          <span style="color:#FFF;"><b>예각</b> - 외심: ${escapeHtml(p.q2_acute_out || '-')} / 내심: ${escapeHtml(p.q2_acute_in || '-')}</span>
+          <span style="color:#FFF;"><b>직각</b> - 외심: ${escapeHtml(p.q2_right_out || '-')} / 내심: ${escapeHtml(p.q2_right_in || '-')}</span>
+          <span style="color:#FFF;"><b>둔각</b> - 외심: ${escapeHtml(p.q2_obtuse_out || '-')} / 내심: ${escapeHtml(p.q2_obtuse_in || '-')}</span>
+          <span style="color:var(--gold); margin-top:8px;">💬 ${escapeHtml(p.q3 || '')}</span>
+        </div></div><div style="font-size:11px; color:#7CA38E; text-align:right;">방금 전</div>`;
+      grid.appendChild(card);
+    });
+  };
+
+  window.submitPost = function() {
+    const q1 = document.getElementById('q1').value.trim();
+    const q2_acute_out = document.getElementById('q2_acute_out').value.trim();
+    const q2_acute_in = document.getElementById('q2_acute_in').value.trim();
+    const q2_right_out = document.getElementById('q2_right_out').value.trim();
+    const q2_right_in = document.getElementById('q2_right_in').value.trim();
+    const q2_obtuse_out = document.getElementById('q2_obtuse_out').value.trim();
+    const q2_obtuse_in = document.getElementById('q2_obtuse_in').value.trim();
+    const q3 = document.getElementById('q3').value.trim();
+    
+    if(!q1) { showNotice("모둠 이름을 입력해주세요!"); return; }
+
+    if (q3.includes('다 잘했어요') || q3.includes('모두') || q3.includes('다잘했어요')) {
+      addScore(30);
+      showNotice("🎉 히든 미션 달성! 따뜻한 마음씨를 가진 모둠에게 30점 추가!");
+    }
+
+    const postData = { q1, q2_acute_out, q2_acute_in, q2_right_out, q2_right_in, q2_obtuse_out, q2_obtuse_in, q3 };
+    if(window.submitPostToCloud) {
+      window.submitPostToCloud(postData);
+    } else {
+      showNotice("🚀 보드에 기록이 올랐습니다!");
+    }
+    document.querySelectorAll('.collab-input, .collab-textarea').forEach(el => el.value = '');
+  };
+
+  function escapeHtml(str) { return str ? str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;") : ''; }
+</script>
+</body>
+</html>
